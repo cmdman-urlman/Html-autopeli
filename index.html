@@ -1,0 +1,291 @@
+```html
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="UTF-8">
+  <title>Autopeli</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #333;
+      font-family: sans-serif;
+      color: white;
+      text-align: center;
+    }
+
+    .game {
+      position: relative;
+      width: 400px;
+      height: 600px;
+      margin: 20px auto;
+      background: #555;
+      border: 5px solid #222;
+      overflow: hidden;
+    }
+
+    /* Tieviivat */
+    .line {
+      position: absolute;
+      left: 195px;
+      width: 10px;
+      height: 100px;
+      background: white;
+      animation: moveLine 1s linear infinite;
+    }
+    .line:nth-child(1) { top: -100px; }
+    .line:nth-child(2) { top: 150px; }
+    .line:nth-child(3) { top: 400px; }
+
+    @keyframes moveLine {
+      from { top: -100px; }
+      to { top: 600px; }
+    }
+
+    /* Pelaajan auto */
+    .car {
+      position: absolute;
+      bottom: 30px;
+      left: 170px;
+      width: 60px;
+      height: 100px;
+      background: red;
+      border-radius: 10px;
+      box-shadow: 0 0 10px #000;
+      transition: left 0.1s linear;
+    }
+
+    /* Pyörät */
+    .wheel {
+      position: absolute;
+      width: 15px;
+      height: 20px;
+      background: black;
+    }
+    .front-left { top: 10px; left: -15px; }
+    .front-right { top: 10px; right: -15px; }
+    .back-left { bottom: 10px; left: -15px; }
+    .back-right { bottom: 10px; right: -15px; }
+
+    /* Vihollisauto */
+    .enemy {
+      position: absolute;
+      width: 60px;
+      height: 100px;
+      background: blue;
+      border-radius: 10px;
+      top: -120px;
+    }
+
+    /* Este */
+    .obstacle {
+      position: absolute;
+      width: 80px;
+      height: 40px;
+      background: gray;
+      top: -60px;
+      border-radius: 5px;
+    }
+
+    /* Kolikko */
+    .coin {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      background: limegreen;
+      border-radius: 50%;
+      top: -40px;
+    }
+
+    #info {
+      margin-top: 10px;
+      font-size: 20px;
+    }
+
+    #gameover {
+      display: none;
+      font-size: 30px;
+      margin-top: 20px;
+      color: yellow;
+    }
+
+    /* Puhelinohjaus */
+    .controls {
+      display: flex;
+      justify-content: center;
+      margin-top: 10px;
+      gap: 20px;
+    }
+
+    .btn {
+      width: 100px;
+      height: 100px;
+      font-size: 40px;
+      border-radius: 50%;
+      border: none;
+      background: #222;
+      color: white;
+      box-shadow: 0 0 10px black;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .btn:active {
+      background: #444;
+    }
+  </style>
+</head>
+<body>
+  <div class="game" id="game">
+    <div class="line"></div>
+    <div class="line"></div>
+    <div class="line"></div>
+
+    <div class="car" id="car">
+      <div class="wheel front-left"></div>
+      <div class="wheel front-right"></div>
+      <div class="wheel back-left"></div>
+      <div class="wheel back-right"></div>
+    </div>
+  </div>
+
+  <div id="info">
+    Elämät: <span id="lives">3</span> | 
+    Pisteet: <span id="score">0</span>
+  </div>
+  <div id="gameover">PELİ OHI!</div>
+
+  <!-- Puhelinohjaus -->
+  <div class="controls">
+    <button class="btn" id="leftBtn">←</button>
+    <button class="btn" id="rightBtn">→</button>
+  </div>
+
+  <script>
+    const car = document.getElementById("car");
+    const game = document.getElementById("game");
+    const livesSpan = document.getElementById("lives");
+    const scoreSpan = document.getElementById("score");
+    const gameoverText = document.getElementById("gameover");
+    const leftBtn = document.getElementById("leftBtn");
+    const rightBtn = document.getElementById("rightBtn");
+
+    let carLeft = 170;
+    const step = 20;
+    const roadWidth = game.clientWidth;
+    const carWidth = car.clientWidth;
+    let lives = 3;
+    let score = 0;
+    let gameOver = false;
+
+    let objects = []; // kaikki liikkuvat objektit
+
+    function moveCar(dir) {
+      if (gameOver) return;
+      if (dir === "left") {
+        carLeft -= step;
+        if (carLeft < 0) carLeft = 0;
+      }
+      if (dir === "right") {
+        carLeft += step;
+        if (carLeft > roadWidth - carWidth) {
+          carLeft = roadWidth - carWidth;
+        }
+      }
+      car.style.left = carLeft + "px";
+    }
+
+    // Näppäinohjaus
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft") moveCar("left");
+      if (e.key === "ArrowRight") moveCar("right");
+    });
+
+    // Kosketusohjaus
+    leftBtn.addEventListener("touchstart", () => moveCar("left"));
+    rightBtn.addEventListener("touchstart", () => moveCar("right"));
+    leftBtn.addEventListener("click", () => moveCar("left"));
+    rightBtn.addEventListener("click", () => moveCar("right"));
+
+    // Luo satunnainen objekti
+    function createObject() {
+      if (gameOver) return;
+      const type = Math.random();
+      let obj;
+
+      if (type < 0.5) {
+        obj = document.createElement("div");
+        obj.classList.add("enemy");
+      } else if (type < 0.75) {
+        obj = document.createElement("div");
+        obj.classList.add("obstacle");
+      } else {
+        obj = document.createElement("div");
+        obj.classList.add("coin");
+      }
+
+      obj.style.left = Math.floor(Math.random() * (roadWidth - 80)) + "px";
+      game.appendChild(obj);
+      objects.push(obj);
+    }
+
+    // Törmäystarkistus
+    function isColliding(a, b) {
+      const aRect = a.getBoundingClientRect();
+      const bRect = b.getBoundingClientRect();
+      return !(
+        aRect.top > bRect.bottom ||
+        aRect.bottom < bRect.top ||
+        aRect.right < bRect.left ||
+        aRect.left > bRect.right
+      );
+    }
+
+    // Päälooppi
+    function gameLoop() {
+      if (gameOver) return;
+
+      score++;
+      scoreSpan.textContent = score;
+
+      objects.forEach((obj, index) => {
+        let top = parseInt(obj.style.top || "-50");
+        obj.style.top = top + 5 + "px";
+
+        if (top > 600) {
+          obj.remove();
+          objects.splice(index, 1);
+        }
+
+        if (isColliding(car, obj)) {
+          if (obj.classList.contains("enemy")) {
+            obj.remove();
+            objects.splice(index, 1);
+            lives--;
+            livesSpan.textContent = lives;
+            if (lives <= 0) endGame();
+          } else if (obj.classList.contains("obstacle")) {
+            endGame();
+          } else if (obj.classList.contains("coin")) {
+            score += 10;
+            scoreSpan.textContent = score;
+            obj.remove();
+            objects.splice(index, 1);
+          }
+        }
+      });
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    function endGame() {
+      gameOver = true;
+      gameoverText.style.display = "block";
+    }
+
+    setInterval(createObject, 1500);
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>
+```
